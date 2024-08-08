@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Verification</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
+}
+.container {
+    max-width: 600px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+h1 {
+    text-align: center;
+}
+label {
+    display: block;
+    margin-bottom: 10px;
+}
+input[type="text"], input[type="button"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+input[type="button"] {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+input[type="button"]:hover {
+    background-color: #0056b3;
+}
+.result, .signature {
+    text-align: center;
+    font-size: 1.2em;
+    margin-top: 20px;
+}
+.signature {
+    font-size: 1em;
+    word-break: break-all;
+    white-space: pre-wrap; 
+}
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Signature Verification</h1>
+        <label for="order_id">Order ID:</label>
+        <input type="text" id="order_id">
+        <label for="payment_id">Payment ID:</label>
+        <input type="text" id="payment_id">
+        <label for="key">Secret Key:</label>
+        <input type="text" id="key">
+        <label for="razorpay_signature">Razorpay Signature:</label>
+        <input type="text" id="razorpay_signature">
+        <input type="button" value="Verify Payment" onclick="verifyPayment()">
+        <div class="result" id="result"></div>
+        <div class="signature" id="generated_signature"></div>
+    <script>
+        function generateSignature(orderId, paymentId, key) {
+    const message = `${orderId}|${paymentId}`;
+    const encoder = new TextEncoder();
+    const messageBytes = encoder.encode(message);
+    const keyBytes = encoder.encode(key);
+
+    return crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+    ).then(key => {
+        return crypto.subtle.sign('HMAC', key, messageBytes);
+    }).then(signature => {
+        const hexSignature = Array.from(new Uint8Array(signature))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+        return hexSignature;
+    });
+}
+
+function verifyPayment() {
+    const orderId = document.getElementById('order_id').value;
+    const paymentId = document.getElementById('payment_id').value;
+    const key = document.getElementById('key').value;
+    const razorpaySignature = document.getElementById('razorpay_signature').value;
+
+    generateSignature(orderId, paymentId, key).then(generatedSignature => {
+        const resultDiv = document.getElementById('result');
+        const signatureDiv = document.getElementById('generated_signature');
+
+        signatureDiv.textContent = `Generated Signature: ${generatedSignature}`;
+
+        if (generatedSignature === razorpaySignature) {
+            resultDiv.textContent = 'Payment is successful';
+            resultDiv.style.color = 'green';
+        } else {
+            resultDiv.textContent = 'Payment verification failed';
+            resultDiv.style.color = 'red';
+        }
+    }).catch(error => {
+        console.error('Error generating signature:', error);
+        document.getElementById('result').textContent = 'Error verifying payment';
+    });
+}
+
+    </script>
+</body>
+</html>
